@@ -30,7 +30,7 @@ class G:
 	viewer_kiosk = True
 	fullscreen = True
 	show_reset = False
-	show_hibernate = False
+	show_hibernate = True  #2024/8/29 complete "hibernate" function - change default to be "True".
 	current_hostset = 'DEFAULT'
 	title = 'VDI Login'
 	hosts = {}
@@ -481,15 +481,22 @@ def setvmlayout(vms):
 			hiberkeyname = f'-HIBER|{vm["vmid"]}-'
 			state = 'stopped'
 			connbutton = sg.Button('Connect', font=["Helvetica", 14], key=connkeyname)
+			hiberbutton = sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname, disabled=True) #2024/8/29 complete "hibernate" function - add "hibernate" button.
 			if vm['status'] == 'running':
 				if 'lock' in vm:
 					state = vm['lock']
 					if state in ('suspending', 'suspended'):
+						''' #2024/8/29 complete "hibernate" function - because of considering "hibernate" status, "starting" is not suitable for this.
 						if state == 'suspended':
 							state = 'starting'
+                                                ''' 
 						connbutton = sg.Button('Connect', font=["Helvetica", 14], key=connkeyname, disabled=True)
+						if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be disabled for this.
+							hiberbutton = sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname, disabled=True)
 				else:
 					state = vm['status']
+					if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be enabled for this.
+							hiberbutton = sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname, disabled=False)
 			tmplayout =	[
 				sg.Text(vm['name'], font=["Helvetica", 14], size=(22*G.scaling, 1*G.scaling)),
 				sg.Text(f"State: {state}", font=["Helvetica", 0], size=(22*G.scaling, 1*G.scaling), key=vmkeyname),
@@ -499,9 +506,9 @@ def setvmlayout(vms):
 				tmplayout.append(
 					sg.Button('Reset', font=["Helvetica", 14], key=resetkeyname)
 				)
-			if G.show_hibernate:
+			if G.show_hibernate: 
 				tmplayout.append(
-					sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname)
+					sg.Button(hiberbutton) #2024/8/29 complete "hibernate" function - "hibernate" button is defined.
 				)
 			layoutcolumn.append(tmplayout)
 			layoutcolumn.append([sg.HorizontalSeparator()])
@@ -566,6 +573,42 @@ def vmaction(vmnode, vmid, vmtype, action='connect'):
 			if stoppop:
 				stoppop.close()
 			return status
+	elif action == 'hibernate': #2024/8/29 complete "hibernate" function - add "hibernate" action. it seems like "reload".
+		stoppop = win_popup(f'Hibernating {vmstatus["name"]} ...')
+		sleep(.1)
+		try:
+			if vmtype == 'qemu':
+				jobid = G.proxmox.nodes(vmnode).qemu(str(vmid)).status.suspend.post(todisk=1)
+			else: # Not sure this is even a thing, but here it is...
+				jobid = G.proxmox.nodes(vmnode).lxc(str(vmid)).status.suspend.post(todisk=1)
+		except proxmoxer.core.ResourceException as e:
+			stoppop.close()
+			win_popup_button(f"Unable to stop VM, please provide your system administrator with the following error:\n {e!r}", 'OK')
+			return False
+		running = True
+		i = 0
+		while running and i < 30:
+			try:
+				jobstatus = G.proxmox.nodes(vmnode).tasks(jobid).status.get()
+			except Exception:
+				# We ran into a query issue here, going to skip this round and try again
+				jobstatus = {}
+			if 'exitstatus' in jobstatus:
+				stoppop.close()
+				stoppop = None
+				if jobstatus['exitstatus'] != 'OK':
+					win_popup_button('Unable to stop VM, please contact your system administrator for assistance', 'OK')
+					return False
+				else:
+					running = False
+					status = True
+			sleep(1)
+			i += 1
+		if not status:
+			if stoppop:
+				stoppop.close()
+			return status
+		return	#2024/8/29 complete "hibernate" function - should be return because the vm don't need to start up again.
 	status = False
 	if vmtype == 'qemu':
 		vmstatus = G.proxmox.nodes(vmnode).qemu(str(vmid)).status.get('current')
@@ -821,19 +864,28 @@ def showvms():
 						for vm in newvms:
 							vmkeyname = f'-VM|{vm["vmid"]}-'
 							connkeyname = f'-CONN|{vm["vmid"]}-'
+							hiberkeyname = f'-HIBER|{vm["vmid"]}-' #2024/8/29 complete "hibernate" function - refresh "hibernate" button.
 							state = 'stopped'
 							if vm['status'] == 'running':
 								if 'lock' in vm:
 									state = vm['lock']
 									if state in ('suspending', 'suspended'):
 										window[connkeyname].update(disabled=True)
+										if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be disabled for this.
+											window[hiberkeyname].update(disabled=True)
+										''' #2024/8/29 complete "hibernate" function - because of considering "hibernate" status, "starting" is not suitable for this.
 										if state == 'suspended':
 											state = 'starting'
+	                                                                        ''' 
 								else:
 									state = vm['status']
 									window[connkeyname].update(disabled=False)
+									if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be enabled for this.
+										window[hiberkeyname].update(disabled=False)
 							else:
 								window[connkeyname].update(disabled=False)
+								if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be disabled for this.
+									window[hiberkeyname].update(disabled=True)
 							window[vmkeyname].update(f"State: {state}")
 
 		event, values = window.read(timeout = 1000)
@@ -858,6 +910,16 @@ def showvms():
 				if str(vm['vmid']) == vmid:
 					found = True
 					vmaction(vm['node'], vmid, vm['type'], action='reload')
+			if not found:
+				win_popup_button(f'VM {vm["name"]} no longer availble, please contact your system administrator', 'OK')
+		elif event.startswith('-HIBER'): #2024/8/29 complete "hibernate" function - "hibernate" action check.
+			eventparams = event.split('|')
+			vmid = eventparams[1][:-1]
+			found = False
+			for vm in vms:
+				if str(vm['vmid']) == vmid:
+					found = True
+					vmaction(vm['node'], vmid, vm['type'], action='hibernate')
 			if not found:
 				win_popup_button(f'VM {vm["name"]} no longer availble, please contact your system administrator', 'OK')
 	return True
