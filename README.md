@@ -1,6 +1,3 @@
-#2024/8/29 原始專案尚未完成 "hibernate" 功能，此更新已完成 "hibernate" 功能 (即把對應之vm當下狀態儲存至硬碟，意思就跟電腦休眠一樣，PVE主機關機後重啟也能恢復vm當下狀態繼續工作)。
-註:僅在windows 10 下測試，對應vm也是windows 10時執行成功，尚未作其他作業系統的測試。
-
 # PVE VDI Client
 
 This project's focus is to create a simple VDI client intended for mass deployment. This VDI client connects directly to Proxmox VE and allows users to connect (via Spice) to any VMs they have permission to access.
