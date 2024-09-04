@@ -113,6 +113,8 @@ def loadconfig(config_location = None, config_type='file', config_username = Non
 			G.guest_type = config['General']['guest_type']
 		if 'show_reset' in config['General']:
 			G.show_reset = config['General'].getboolean('show_reset')
+		if 'show_hibernate' in config['General']: #2024/9/4 fix "hibernate" function problem - get "show_hibernate" value from config file. 
+			G.show_reset = config['General'].getboolean('show_hibernate')
 		if 'window_width' in config['General']:
 			G.width = config['General'].getint('window_width')
 		if 'window_height' in config['General']:
@@ -508,7 +510,7 @@ def setvmlayout(vms):
 				)
 			if G.show_hibernate: 
 				tmplayout.append(
-					sg.Button(hiberbutton) #2024/8/29 complete "hibernate" function - "hibernate" button is defined.
+					hiberbutton #2024/8/29 complete "hibernate" function - "hibernate" button is defined. #2024/9/4 fix "hibernate" function problem - fix wrong code . 
 				)
 			layoutcolumn.append(tmplayout)
 			layoutcolumn.append([sg.HorizontalSeparator()])
