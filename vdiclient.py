@@ -114,7 +114,7 @@ def loadconfig(config_location = None, config_type='file', config_username = Non
 		if 'show_reset' in config['General']:
 			G.show_reset = config['General'].getboolean('show_reset')
 		if 'show_hibernate' in config['General']: #2024/9/4 fix "hibernate" function problem - get "show_hibernate" value from config file. 
-			G.show_reset = config['General'].getboolean('show_hibernate')
+			G.show_hibernate = config['General'].getboolean('show_hibernate')
 		if 'window_width' in config['General']:
 			G.width = config['General'].getint('window_width')
 		if 'window_height' in config['General']:
