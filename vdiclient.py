@@ -484,9 +484,11 @@ def setvmlayout(vms):
 			state = 'stopped'
 			connbutton = sg.Button('Connect', font=["Helvetica", 14], key=connkeyname)
 			hiberbutton = sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname, disabled=True) #2024/8/29 complete "hibernate" function - add "hibernate" button.
+			statetext = sg.Text(f"State: {state}", font=["Helvetica", 0], background_color='red', size=(22*G.scaling, 1*G.scaling), key=vmkeyname) #2024/9/4 add "state" text background - inital "statetext" variable.
 			if vm['status'] == 'running':
 				if 'lock' in vm:
 					state = vm['lock']
+					statetext = sg.Text(f"State: {state}", font=["Helvetica", 0], background_color='white', size=(22*G.scaling, 1*G.scaling), key=vmkeyname) #2024/9/4 add "state" text background - set to "white" color.
 					if state in ('suspending', 'suspended'):
 						''' #2024/8/29 complete "hibernate" function - because of considering "hibernate" status, "starting" is not suitable for this.
 						if state == 'suspended':
@@ -497,11 +499,12 @@ def setvmlayout(vms):
 							hiberbutton = sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname, disabled=True)
 				else:
 					state = vm['status']
+					statetext = sg.Text(f"State: {state}", font=["Helvetica", 0], background_color='green', size=(22*G.scaling, 1*G.scaling), key=vmkeyname) #2024/9/4 add "state" text background - set to "green" color.
 					if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be enabled for this.
 							hiberbutton = sg.Button('Hibernate', font=["Helvetica", 14], key=hiberkeyname, disabled=False)
 			tmplayout =	[
 				sg.Text(vm['name'], font=["Helvetica", 14], size=(22*G.scaling, 1*G.scaling)),
-				sg.Text(f"State: {state}", font=["Helvetica", 0], size=(22*G.scaling, 1*G.scaling), key=vmkeyname),
+				statetext, #2024/9/4 add "state" text background - - "state" text is defined.
 				connbutton
 			]
 			if G.show_reset:
@@ -868,9 +871,11 @@ def showvms():
 							connkeyname = f'-CONN|{vm["vmid"]}-'
 							hiberkeyname = f'-HIBER|{vm["vmid"]}-' #2024/8/29 complete "hibernate" function - refresh "hibernate" button.
 							state = 'stopped'
+							window[vmkeyname].update(f"State: {state}", background_color='red') #2024/9/4 add "state" text background - update to "red" color.
 							if vm['status'] == 'running':
 								if 'lock' in vm:
 									state = vm['lock']
+									window[vmkeyname].update(f"State: {state}", background_color='white') #2024/9/4 add "state" text background - update to "white" color.
 									if state in ('suspending', 'suspended'):
 										window[connkeyname].update(disabled=True)
 										if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be disabled for this.
@@ -881,14 +886,15 @@ def showvms():
 	                                                                        ''' 
 								else:
 									state = vm['status']
+									window[vmkeyname].update(f"State: {state}", background_color='green') #2024/9/4 add "state" text background - update to "green" color.
 									window[connkeyname].update(disabled=False)
 									if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be enabled for this.
 										window[hiberkeyname].update(disabled=False)
 							else:
+								window[vmkeyname].update(f"State: {state}", background_color='red') #2024/9/4 add "state" text background - update to "red" color.
 								window[connkeyname].update(disabled=False)
 								if G.show_hibernate: #2024/8/29 complete "hibernate" function - "hibernate" button should be disabled for this.
 									window[hiberkeyname].update(disabled=True)
-							window[vmkeyname].update(f"State: {state}")
 
 		event, values = window.read(timeout = 1000)
 		if event in ('Logout', None):
